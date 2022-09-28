@@ -1,28 +1,59 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div>
+    <Modalbox v-if="isShowModalBox"></Modalbox>
+    <div class="layoutBox">
+      <AsideLeft></AsideLeft>
+      <Header></Header>
+    </div>
+    <PalyBar></PalyBar>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-}
+  name: "App",
+  components: {},
+  data() {
+    return {
+      isShowModalBox: null,
+    };
+  },
+  mounted() {
+    // 全局事件总线
+    this.$bus.$on("isShowModalBox", (data) => {
+      this.isShowModalBox = data;
+    });
+    this.$bus.$on("iscloseModalBox", () => {
+      this.isShowModalBox = !this.isShowModalBox;
+    });
+  },
+};
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+body::-webkit-scrollbar {
+  display: none;
+  background-color: rgb(255, 255, 255);
+  width: 10px;
+}
+body::-webkit-scrollbar-thumb {
+  background-color: rgb(0, 88, 34);
+  border-radius: 5px;
+  width: 10px;
+}
+a {
+  /* color:#fff; */
+  text-decoration: none;
+}
+.layoutBox {
+  height: 100vh;
+  display: flex;
 }
 </style>
