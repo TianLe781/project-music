@@ -53,12 +53,18 @@ export default {
       active: 0,
       HeartTemp: false,
       _this: this,
+      //当前歌曲id
+      currentSongId: "",
     };
   },
   created() {},
   props: ["songs"],
   mounted() {
     //当点击个歌曲时触发播放
+    //發送audio
+    this.$bus.$on("audioRef", (data) => {
+      this.$bus.audio = data;
+    });
   },
   computed: {
     //格式化歌曲时间
@@ -103,19 +109,36 @@ export default {
     SongListPlay(id, index) {
       //播放前先检测是否可用
       this.$API.reqCheck(id).then(
-        (v) => {
+        async (v) => {
           //不可用
           if (!v.success) return alert("亲爱的，暂无版权");
           //可用
-          this.$store.dispatch("playlistinfo/songUrl", id);
-          //传歌曲url给播放器
-          this.$bus.$emit(
-            "url",
-            this.$store.state.playlistinfo.songUrl,
-            this.$store.state.playlistinfo.songs[index],
-            id
-          );
-          console.log(this.$store.state.playlistinfo.songs[index]);
+          //记录当前点击的歌曲 判断是否重复点击同一首歌
+          if (this.currentSongId == id) {
+            console.log("一下子就赋值了");
+            alert("当前正在播放,请勿重复点歌");
+          } else {
+            this.currentSongId = id;
+            this.$store.dispatch("playlistinfo/songUrl", id);
+            //传歌曲url给播放器
+            this.$bus.$emit(
+              "url",
+              this.$store.state.playlistinfo.songUrl,
+              this.$store.state.playlistinfo.songs[index],
+              id
+            );
+            // 发送歌曲信息给歌词页;
+            setTimeout(() => {
+              this.$bus.$emit(
+                "songInfoData",
+                this.$store.state.playlistinfo.songs[index].name,
+                this.$store.state.playlistinfo.songs[index].ar[0].name
+              );
+            }, 500);
+            //发送歌词
+            let res = await this.$API.reqSongLyric(id);
+            this.$bus.$emit("songLyricData", res);
+          }
         },
         (error) => {
           console.log(error);

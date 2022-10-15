@@ -3,7 +3,10 @@
     <div class="playListBox">
       <div class="top">
         <div class="left">
-          <div class="img">
+          <div class="img" @click="addSongList">
+            <!-- 播放图标 -->
+            <i class="fa-solid fa-play"></i>
+            <div class="mask"></div>
             <img :src="playlist.coverImgUrl" alt="" />
           </div>
         </div>
@@ -83,7 +86,11 @@ export default {
     ...mapState("playlistinfo", ["playlist"]),
     ...mapState("playlistinfo", ["songs"]),
   },
-  methods: {},
+  methods: {
+    addSongList() {
+      this.$bus.$emit("allSongs", this.songs);
+    },
+  },
 };
 </script>
 
@@ -119,6 +126,7 @@ export default {
         height: 100%;
         // background-color: rgb(198, 198, 220);
         .img {
+          position: relative;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -126,11 +134,40 @@ export default {
           height: 250px;
           padding: 2px;
           border: 1px solid rgb(134, 134, 134);
+          cursor: pointer;
+          .fa-play {
+            position: absolute;
+            font-size: 80px;
+            top: 65%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0);
+            transition: 0.5s all;
+            z-index: 1;
+          }
+          .mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0);
+            transition: 0.3s all;
+          }
           img {
             width: 100%;
             height: 100%;
             object-fit: cover;
           }
+        }
+        .img:hover .mask {
+          background-color: rgba(0, 0, 0, 0.5);
+          transition: 0.3s all;
+        }
+        .img:hover .fa-play {
+          top: 50%;
+          color: rgba(255, 255, 255, 0.5);
+          transition: 0.5s all;
         }
       }
       .right {

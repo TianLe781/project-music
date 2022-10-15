@@ -50,17 +50,17 @@
         </div>
       </div>
     </div>
-    <FullScreen v-show="isShowLyric"></FullScreen>
-    <router-view v-show="!isShowLyric"></router-view>
+    <!-- <FullScreen v-show="isShowLyric"></FullScreen> -->
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
-import FullScreen from "@/components/FullScreen";
+// import FullScreen from "@/components/FullScreen";
 export default {
   name: "Header",
   components: {
-    FullScreen,
+    // FullScreen,
   },
   data() {
     return {

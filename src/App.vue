@@ -18,6 +18,12 @@ export default {
       isShowModalBox: null,
     };
   },
+  created() {
+    //如果在歌词页面刷新返回主页
+    if (this.$router.path !== "/home") {
+      this.$router.replace("home");
+    }
+  },
   mounted() {
     // 全局事件总线
     this.$bus.$on("isShowModalBox", (data) => {

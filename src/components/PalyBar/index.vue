@@ -28,7 +28,6 @@
           class="fa-solid fa-compress"
           @click="fullScreen"
           ref="fullScreen"
-          v-if="songImg"
         ></i>
       </div>
       <div class="controller">
@@ -84,7 +83,7 @@
                 <div class="songListHeaderLeft">
                   <p>播放列表({{ songsURL.length }})</p>
                 </div>
-                <div class="songListHeaderRight">
+                <div class="songListHeaderRight" @click="removeList">
                   <p>清除</p>
                   <i class="fa-solid fa-trash-can"></i>
                 </div>
@@ -98,6 +97,7 @@
                   :key="song.id"
                   :class="{ songBoxActive: isActive == index }"
                   @click="isSelect(index)"
+                  v-on:dblclick="dbclick(index, song.id)"
                 >
                   <div class="songLeft">
                     <h4>{{ song.name }}</h4>
@@ -113,7 +113,7 @@
                       <i class="fa-solid fa-trash-can"></i>
                     </div>
                     <div class="songTime">
-                      <p ref="songTime"></p>
+                      <p ref="songTime" @click="songTime(index)"></p>
                     </div>
                   </div>
                 </div>
@@ -197,6 +197,10 @@ export default {
       songImg: "",
       songName: "",
       songSinger: "",
+      //歌曲列表Id标识（防止重复添加）
+      songsId: "",
+      //当前歌曲Id
+      CurSongId: "",
     };
   },
   mounted() {
@@ -208,7 +212,7 @@ export default {
     this.$bus.$emit("n", this.n);
     //收播放url和歌曲序列并且播放
     this.$bus.$on("url", (data, song, id) => {
-      console.log("播放器", data.url, song, id);
+      // console.log("播放器", data.url, song, id);
       //设置播放器url
       this.$refs.audio.src = data.url;
       this.url = data.url;
@@ -217,14 +221,26 @@ export default {
       this.songName = song.name;
       this.songSinger = song.ar[0].name;
       //把当前歌曲添加到歌曲仓库
-      this.songsURL.unshift(song);
-
-      //显示歌曲总时长
+      if (id == this.songsId) {
+        console.log("重复");
+      } else {
+        console.log("不重复");
+        this.songsURL.unshift(song);
+        this.songsId = id;
+      }
+    });
+    //接收歌单所有歌曲存入列表
+    this.$bus.$on("allSongs", (data) => {
+      console.log("收到", data);
+      this.songsURL = [];
+      this.songsURL.push(...data);
     });
   },
   computed: {
     ...mapState("playlistinfo", ["songUrl"]),
     ...mapState("playlistinfo", ["songs"]),
+    //获取歌词
+    ...mapState("fullScreen", ["lyric"]),
   },
   methods: {
     //播放器进度条
@@ -367,6 +383,8 @@ export default {
     // 播放、暂停
     play() {
       if (this.flag) {
+        //如果没有歌曲在播放器中
+        if (this.songsURL.length == 0) return alert("无歌曲在播放器中");
         //设置显示时间
         this.playTime();
         this.isActive = this.n;
@@ -408,6 +426,7 @@ export default {
       }
       //进行赋值播放
       this.n = r;
+      this.forwardHander(this.n);
       this.isActive = r;
       this.initAudio();
       this.flag = true;
@@ -443,16 +462,25 @@ export default {
           if (!this.isRandomPlay) {
             //也没开单曲循环
             if (!this.isLoop) {
-              //停止播放
-              this.$refs.audio.pause();
-              //开了随机
-            } else if (this.isRandomPlay) {
-              //随机播放
-              this.randomNum(this.songLenght);
-              // 开了单曲循环
-            } else if (this.isLoop) {
-              this.isRepeatPlay();
+              //如果播放列表里只有一首歌那么就停止播放
+              if (this.songsURL.length == 1) {
+                this.$refs.audio.load();
+                this.flag = true;
+                console.log("停止播放");
+              } else {
+                //下一首
+                this.forward();
+              }
             }
+            //开了随机
+          } else if (this.isRandomPlay) {
+            //随机播放
+            this.randomNum(this.songsURL.length);
+            console.log("随机");
+            // 开了单曲循环
+          } else if (this.isLoop) {
+            console.log("单曲循环");
+            // this.isRepeatPlay();
           }
         } else {
           // 进度条走动
@@ -479,27 +507,51 @@ export default {
       if (this.n > 0) {
         this.n = this.n - 1;
         this.isActive = this.n;
-        this.initAudio();
+        this.forwardHander(this.n);
         this.flag = true;
       } else {
         this.n = this.songsURL.length - 1;
         this.isActive = this.n;
-        this.initAudio();
+        this.forwardHander(this.n);
         this.flag = true;
       }
+    },
+    //下一首内部
+    async forwardHander(index) {
+      // 网络请求下一首
+      let result = await this.$API.reqSongUrl(this.songsURL[index].id);
+      if (result.code !== 200)
+        return Promise.reject(new Error("下一首请求失败！"));
+      //赋值url
+      this.$refs.audio.src = result.data[0].url;
+      //获取歌曲详细信息
+      let result2 = await this.$API.reqSongInfo(this.songsURL[index].id);
+      //赋值封面
+      this.songImg = result2.songs[0].al.picUrl;
+      //赋值歌手
+      this.songSinger = result2.songs[0].ar[0].name;
+      //赋值歌曲名
+      this.songName = result2.songs[0].name;
+      //发送歌词信息
+      this.sendSongLI(this.songsURL[index].id);
+      // this.initAudio();
+      this.$refs.audio.play();
+      this.flag = false;
     },
     // 下一首
     forward() {
       if (this.n < this.songsURL.length - 1) {
         this.n = this.n + 1;
         this.isActive = this.n;
-        this.initAudio();
-        this.flag = true;
+        //下一首播放
+        this.forwardHander(this.n);
       } else {
         this.n = 0;
         this.isActive = this.n;
-        this.initAudio();
-        this.flag = true;
+        // this.initAudio();
+        //下一首播放
+        this.forwardHander(this.n);
+        this.flag = false;
       }
     },
     //计算百分比and跳转
@@ -529,6 +581,14 @@ export default {
         this.$refs.audio.volume = parseInt(this.voluneTemp) / 100;
       }
     },
+    //歌曲列表内双击
+    async dbclick(index, id) {
+      this.forwardHander(index);
+      this.n = index;
+      this.CurSongId = id;
+      //发送歌词数据
+      this.sendSongLI(id);
+    },
     // 歌曲列表排他选择
     isSelect(index) {
       this.isActive = index;
@@ -545,22 +605,46 @@ export default {
         this.songListflag = false;
       }
     },
+    // 歌曲列表清除
+    removeList() {
+      this.songsURL = [];
+      //改变播放按钮状态为暂停
+      this.flag = true;
+      //清除临时对比id
+      this.songImg = "";
+      this.$refs.audio.load();
+    },
     //喜欢当前播放的歌曲
     likeThisSong() {
-      console.log(this.n);
+      console.log(this.songsURL[this.n].id);
     },
     //全屏
     fullScreen() {
       if (!this.isFullScreen) {
+        this.$router.push("/fullscreen");
         this.isFullScreen = true;
         this.$refs.fullScreen.style.color = "red";
+        // 發送audio
         this.$bus.$emit("audioRef", this.$refs.audio);
         this.$bus.$emit("isShowLyric", this.isFullScreen);
       } else {
+        this.$router.go(-1);
         this.isFullScreen = false;
         this.$refs.fullScreen.style.color = "";
         this.$bus.$emit("isShowLyric", this.isFullScreen);
       }
+    },
+    //发送歌词数据
+    async sendSongLI(id) {
+      //發送audio
+      this.$bus.$emit("audioRef", this.$refs.audio);
+      //发送歌词
+      let res = await this.$API.reqSongLyric(id);
+      this.$bus.$emit("songLyricData", res);
+      // 发送歌曲信息给歌词页;
+      setTimeout(() => {
+        this.$bus.$emit("songInfoData", this.songName, this.songSinger);
+      }, 500);
     },
   },
   watch: {

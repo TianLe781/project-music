@@ -41,6 +41,7 @@ export default {
         { title: "精品歌单", id: "002" },
       ],
       playLists: [],
+      Lyric: "",
     };
   },
   created() {
@@ -51,7 +52,24 @@ export default {
     // 请求精品歌单
     this.$store.dispatch("home/songListBoutique");
   },
-  mounted() {},
+  mounted() {
+    //中转音频组件给歌词页
+    this.$bus.$on("audioRef", (audio) => {
+      //設置歌詞樣式
+      console.log("home", audio);
+      this.$bus.audio = audio;
+    });
+    //中转歌词给歌词页
+    this.$bus.$on("songLyricData", (data) => {
+      this.Lyric = data.lrc.lyric;
+      this.$bus.Lyric = data.lrc.lyric;
+    });
+    //中转歌词信息给歌词页面
+    this.$bus.$on("songInfoData", (name, singer) => {
+      console.log(name, singer);
+      this.$bus.songInfo = [name, singer];
+    });
+  },
   computed: {
     ...mapState("home", ["bannerList"]),
     ...mapState("home", ["playListsHot"]),
@@ -98,6 +116,11 @@ export default {
     //检测精品歌单获取以后push到歌单数组中
     playListsBoutique(value) {
       this.playLists.push(this.playListsBoutique);
+    },
+    //检测歌词变化
+    Lyric(value) {
+      this.$bus.Lyric = this.Lyric;
+      console.log("歌词变了");
     },
   },
 };

@@ -12,4 +12,8 @@ export const reqSongs = (id) => requests({ url: `/playlist/track/all?id=${id}&li
 //获取歌曲url
 export const reqSongUrl = (id) => requests({ url: `/song/url?id=${id}`, method: 'get' });
 //获取音乐是否可用
-export const reqCheck = (id) => requests({ url: `/check/music?id=${id}`, method: 'get' })
+export const reqCheck = (id) => requests({ url: `/check/music?id=${id}`, method: 'get' });
+//获取歌曲详情
+export const reqSongInfo = (ids) => requests({ url: `/song/detail?ids=${ids}`, method: 'get' });
+//获取歌曲歌词
+export const reqSongLyric = (id) => requests({ url: `/lyric?id=${id}`, method: 'get' });
